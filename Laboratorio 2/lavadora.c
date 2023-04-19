@@ -72,5 +72,68 @@ switch(Estado)
       }
 
     //break;
+
+  case Suministro_Agua:
+      S_suministro = 1;
+      
+      
+      ISR_PAUSA(PCIF0)
+      {
+        Estado = Pausa;
+      }
+
+      ISR_LAVAR(OCF0A)
+      {
+        S_suministro = 0;
+        Estado = Lavar;
+      }
+
+  case Lavar:
+    S_Lavar = 1;
+    
+    ISR_PAUSA(PCIF0)
+    {
+      Estado = Pausa;
+    }
+    ISR_ENJUAGAR(OCF0A)
+    {
+      S_Lavar = 0;
+      Estado = Enjuagar;
+    }
+    
+  case Enjuagar:
+    S_Enjuagar = 1;
+    
+    ISR_PAUSA(PCIF0)
+    {
+      Estado = Pausa;
+    }
+
+    ISR_CENTRIFUGAR(OCF0A)
+    {
+      S_Enjuagar = 0;
+      Estado = Centrifugar;
+    }
+    
+  case Centrifugar:
+    S_Centrifugar = 1;
+    
+    ISR_PAUSA(PCIF0)
+    {
+      Estado = Pausa;
+    }
+  
+    ISR_TERMINAR(OCF0A)
+    {
+      S_Centrifugar = 0;
+      Estado = Asignar_Carga;
+    }
+
+  case Pausa:
+  
+    ISR_PAUSA(PCIF0)
+    {
+      Estado = Pausa;
+    }
 }
 }
