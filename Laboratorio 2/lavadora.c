@@ -2,9 +2,9 @@
 #include <avr/interrupt.h>
 
 //Variables Importantes
-unsigned char t_suministro, t_lavar, t_enjuagar, t_centrigar; //tiempos de cada estado
+unsigned char t_suministro, t_lavar, t_enjuagar, t_centrigar, prox_TCNT0; //tiempos de cada estado
 unsigned char S_Inicio, S_suministro, S_Lavar, S_Enjuagar, S_Centrifugar; //Indicadores de Estado
-unsigned char Estado, Accion, Volver_Estado;
+unsigned char Estado, Accion, Volver_Estado, Prox_Estado;
 unsigned char Sb = 0b00000001, Lb = 0b00000011, Eb = 0b00000010, Cb = 0b00000011; //Tiempo en Carga Baja
 unsigned char Sm = 0b00000010, Lm = 0b00000111, Em = 0b00000100, Cm = 0b00000110; //Tiempo en Carga Media
 unsigned char Sa = 0b00000011, La = 0b00001010, Ea = 0b00000101, Ca = 0b00001001; //Tiempo en Carga Alta
@@ -47,30 +47,36 @@ void estados(void) //procede a llamar los estados de la lavadora
 switch(Estado)
 { 
   case 'b': //Inicio
-    break;
-    Estado = 'c';
+    Accion = 0;
+    TCN0 = t_suministro;
+    break; 
 
+    
   case 'c': //Suministro de Agua
-      S_suministro = 1, S_Lavar = 0, S_Enjuagar = 0, S_Centrifugar = 0;
-      PORTD = PORTD | (1<<5);
-      Accion = 1;
-      
+
+    S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0, Accion = 1;
+    PORTD = PORTD | (1<<5);
+    prox_TCNT0 = t_lavar;  
+    Prox_Estado = 'd';  
       break;
 
   case 'd': //Lavar
-    S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0;
+    S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<4);
     PORTD &= ~(1<<5);
+    prox_TCNT0 = t_enjuagar;  
+    Prox_Estado = 'e';
+
     break;
 
   case 'e': //Enjuagar
-    S_suministro = 0, S_Lavar = 0, S_Enjuagar = 1, S_Centrifugar = 0;
+    S_suministro = 0, S_Lavar = 0, S_Enjuagar = 1, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<3);
     PORTD &= ~(1<<4);
     break;
 
   case 'f': //Centrifugar
-    S_suministro = 0, S_Lavar = 0, S_Enjuagar = 0, S_Centrifugar = 1;
+    S_suministro = 0, S_Lavar = 0, S_Enjuagar = 0, S_Centrifugar = 1, Accion = 1;
     PORTA = PORTA | (1<<1);
     PORTD &= ~(0<<3);
     break;
@@ -171,7 +177,6 @@ ISR (INT0_vect)
       
       case 0: //Inicio
       Estado = 'c';
-      
       break;
       
       case 1: //Pausa
@@ -183,12 +188,33 @@ ISR (INT0_vect)
     
   }
 
+
+switch(Tiempos)
+  {
+    case 'x': //Tiempo de Suministro de Agua
+
+      break;
+    case 'y': //Tiempo de Lavar
+      break;
+    case 'w': //Tiempo de Enjuagar
+      break;
+    case 'z': //Tiempo de Centrifugar
+      break;
+  } 
+
+
+
+
 //Interrupción de Timeout de los estados:
-/*ISR (TIMER0_COMPA_vect)
+
+
+
+
+ISR (TIMER0_COMPA_vect)
 {
-  S_suministro = 0;
-  Estado = 'd';
-}*/
+  Estado = Prox_Estado;
+  TCN0 = prox_TCNT0;
+}
  
 
 
