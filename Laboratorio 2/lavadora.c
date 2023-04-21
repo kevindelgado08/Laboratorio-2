@@ -20,7 +20,7 @@ int main(void)
   DDRD = 0b01111000;
   PORTD = 0b01000000;  
   DDRB = 0b11110010;
-  PORTB = 0b11110010;
+  PORTB = 0b00000010;
   DDRA = 0b00000010;
   PORTA = 0b00000000;
 
@@ -30,15 +30,26 @@ int main(void)
   PCMSK = 0b00000001;
   PCMSK1 = 0b00000001;
   PCMSK2 = 0b00000001;
+
+  // Configuración del oscilador interno a 128 kHz
+    OSCCAL |= (1 << CAL1) | (1 << CAL0);
+    
+    // Configuración del registro CLKPR
+    CLKPR |= (1 << CLKPCE);  // Habilita la escritura en el registro CLKPR
+    CLKPR |= (1 << CLKPS0);  // Establece el preescalador del reloj a 2 (128 kHz / 2 = 64 kHz)
+    
+    // Restablece el valor del registro OSCCAL a su valor predeterminado
+    OSCCAL = 0x00;
+
+
+
   // Configurar Timer Counter 0 en modo CTC con prescaler de 1024
-  TCCR0A = (1 << WGM01);
-  TCCR0B = (1 << CS00) | (1 << CS02) | (1 << WGM02);
+  TCCR0A |= (1 << WGM01); // modo CTC
+  TCCR0B |= (1 << CS02) | (1 << CS00) | (0 << CS01); // prescaler de 1024
+  OCR0A = 255; // valor de comparación
   
-
-  // Configurar valor de comparación inicial
-  OCR0A = 0;
-  
-
+  TCNT0 = 131;
+  //TIMSK = (1 << OCIE0A);
   //Valores iniciales
   Estado = 'b';
   Accion = 0;
@@ -56,7 +67,10 @@ switch(Estado)
 { 
   case 'b': //Inicio
     Accion = 0;
-    TCNT0 = t_suministro;
+    PORTD &= ~(1<<5);
+    PORTD &= ~(1<<4);
+    PORTD &= ~(1<<3);
+    PORTA &= ~(1<<1);
     break; 
 
     
@@ -66,8 +80,7 @@ switch(Estado)
     PORTD = PORTD | (1<<5);
     prox_TCNT0 = t_lavar;  
     Prox_Estado = 'd';
-    TCNT0 = TCNT0 >> -4;
-    PORTB = PORTB | (TCNT0);  
+    
       break;
 
   case 'd': //Lavar
@@ -83,12 +96,14 @@ switch(Estado)
     S_suministro = 0, S_Lavar = 0, S_Enjuagar = 1, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<3);
     PORTD &= ~(1<<4);
+    prox_TCNT0 = t_centrigar;  
+    Prox_Estado = 'f';
     break;
 
   case 'f': //Centrifugar
     S_suministro = 0, S_Lavar = 0, S_Enjuagar = 0, S_Centrifugar = 1, Accion = 1;
     PORTA = PORTA | (1<<1);
-    PORTD &= ~(0<<3);
+    PORTD &= ~(1<<3);
     break;
 
   case 'g': //Pausa
@@ -203,6 +218,7 @@ ISR (INT0_vect)
 
 ISR (TIMER0_COMPA_vect)
 {
+  
   Estado = Prox_Estado;
   TCNT0 = prox_TCNT0;
 }
