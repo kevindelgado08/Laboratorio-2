@@ -50,20 +50,19 @@ int main(void)
     estados();
   }
 }
-/*void display(tiempo_estado)
-{
   
-  for( decenas = tiempo_estado; decenas < 0; decenas --)
-      for( unidades= tiempo_estado; unidades < 0; unidades --)
-          for(int i=0;i<10; i++)
-          {
-                
-              
-                              
-          }
-            
+//Función para mostrar en el display
+void num_display(tiempo_estado)
+{
+    int unid;
+    int dec;
+
+    //Para multiplexar el numero en decena y unidad
+    dec=tiempo_estado/10;
+    unid=tiempo_estado%10;
+                         
+   
 }
-*/
 
 ISR (TIMER1_COMPA_vect)
 {
