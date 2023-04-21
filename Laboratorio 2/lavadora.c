@@ -4,18 +4,18 @@
 //Variables Importantes
 unsigned char t_suministro, t_lavar, t_enjuagar, t_centrigar, Tiempo_Actual; //tiempos de cada estado
 unsigned char S_Inicio, S_suministro, S_Lavar, S_Enjuagar, S_Centrifugar; //Indicadores de Estado
-unsigned char Estado, Accion, Volver_Estado, Prox_Estado, tiempo_estado;
+unsigned char Estado, Accion, Volver_Estado, Prox_Estado, tiempo_estado, prox_TCNT0;
 unsigned char Sb = 0b00000001, Lb = 0b00000011, Eb = 0b00000010, Cb = 0b00000011; //Tiempo en Carga Baja
 unsigned char Sm = 0b00000010, Lm = 0b00000111, Em = 0b00000100, Cm = 0b00000110; //Tiempo en Carga Media
 unsigned char Sa = 0b00000011, La = 0b00001010, Ea = 0b00000101, Ca = 0b00001001; //Tiempo en Carga Alta
-
+int timer;
 //Llamado a Funciones
 void estados();
 
 //Funciones a utilizar
 int main(void)
 {
-  sei(); //habilita las interrupciones globales
+  
   //Habilitaci\'on de GPIO'S
   DDRD = 0b01111000;
   PORTD = 0b01000000;  
@@ -31,25 +31,16 @@ int main(void)
   PCMSK1 = 0b00000001;
   PCMSK2 = 0b00000001;
 
-  // Configuración del oscilador interno a 128 kHz
-    OSCCAL |= (1 << CAL1) | (1 << CAL0);
-    
-    // Configuración del registro CLKPR
-    CLKPR |= (1 << CLKPCE);  // Habilita la escritura en el registro CLKPR
-    CLKPR |= (1 << CLKPS0);  // Establece el preescalador del reloj a 2 (128 kHz / 2 = 64 kHz)
-    
-    // Restablece el valor del registro OSCCAL a su valor predeterminado
-    OSCCAL = 0x00;
-
-
-
-  // Configurar Timer Counter 0 en modo CTC con prescaler de 1024
-  TCCR0A |= (1 << WGM01); // modo CTC
-  TCCR0B |= (1 << CS02) | (1 << CS00) | (0 << CS01); // prescaler de 1024
-  OCR0A = 255; // valor de comparación
   
-  TCNT0 = 131;
-  //TIMSK = (1 << OCIE0A);
+  // Configurar Timer Counter 0 en modo CTC con prescaler de 1024
+
+  
+  TCCR1A |= (1 << WGM01) | (0 << WGM02) | (1 << WGM00); // modo CTC
+  TCCR1B |= (1 << CS02) | (1 << CS00) | (0 << CS01); // prescaler de 1024
+  OCR1A = 255; // valor de comparación
+  
+  sei(); //habilita las interrupciones globales
+  //TIMSK = (1 << OCIE0A);  
   //Valores iniciales
   Estado = 'b';
   Accion = 0;
@@ -59,20 +50,36 @@ int main(void)
     estados();
   }
 }
-void display(tiempo_estado)
+/*void display(tiempo_estado)
 {
   
   for( decenas = tiempo_estado; decenas < 0; decenas --)
       for( unidades= tiempo_estado; unidades < 0; unidades --)
           for(int i=0;i<10; i++)
           {
-              GPIO = (numdeci[decenas]); 
-              GPIO = (numuni[unidades]);   
+                
               
                               
           }
             
 }
+*/
+
+ISR (TIMER1_COMPA_vect)
+{
+  if(timer == 0)
+  {
+    Estado = Prox_Estado;
+  }
+  timer = Tiempo_Actual;
+  Tiempo_Actual = Tiempo_Actual << 4;
+  PORTB = PORTB | (Tiempo_Actual);
+  Tiempo_Actual--;
+  timer--;
+
+  
+}
+ 
 void estados(void) //procede a llamar los estados de la lavadora
 {
 
@@ -89,10 +96,13 @@ switch(Estado)
     
   case 'c': //Suministro de Agua
     TIMSK = (1 << OCIE0A);
+    Tiempo_Actual = t_suministro; 
+    Prox_Estado = 'd';
+    
     S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<5);
-    Tiempo_Actual = t_lavar;  
-    Prox_Estado = 'd';
+    ;  
+    
     
       break;
 
@@ -106,11 +116,12 @@ switch(Estado)
     break;
 
   case 'e': //Enjuagar
+    Tiempo_Actual = t_centrigar;  
+    Prox_Estado = 'f';
     S_suministro = 0, S_Lavar = 0, S_Enjuagar = 1, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<3);
     PORTD &= ~(1<<4);
-    Tiempo_Actual = t_centrigar;  
-    Prox_Estado = 'f';
+    
     break;
 
   case 'f': //Centrifugar
@@ -229,12 +240,13 @@ ISR (INT0_vect)
 //Interrupción de Timeout de los estados:
 
 
-ISR (TIMER0_COMPA_vect)
+//Version Original
+/*ISR (TIMER0_COMPA_vect)
 {
   
   Estado = Prox_Estado;
-  TCNT0 = prox_TCNT0;
-}
- 
+  TCNT0 = Tiempo_Actual;
+}*/
+
 
 
