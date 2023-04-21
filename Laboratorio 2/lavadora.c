@@ -30,6 +30,14 @@ int main(void)
   PCMSK = 0b00000001;
   PCMSK1 = 0b00000001;
   PCMSK2 = 0b00000001;
+  // Configurar Timer Counter 0 en modo CTC con prescaler de 1024
+  TCCR0A = (1 << WGM01);
+  TCCR0B = (1 << CS00) | (1 << CS02) | (1 << WGM02);
+  
+
+  // Configurar valor de comparación inicial
+  OCR0A = 0;
+  
 
   //Valores iniciales
   Estado = 'b';
@@ -48,16 +56,18 @@ switch(Estado)
 { 
   case 'b': //Inicio
     Accion = 0;
-    TCN0 = t_suministro;
+    TCNT0 = t_suministro;
     break; 
 
     
   case 'c': //Suministro de Agua
-
+    TIMSK = (1 << OCIE0A);
     S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<5);
     prox_TCNT0 = t_lavar;  
-    Prox_Estado = 'd';  
+    Prox_Estado = 'd';
+    TCNT0 = TCNT0 >> -4;
+    PORTB = PORTB | (TCNT0);  
       break;
 
   case 'd': //Lavar
@@ -188,32 +198,13 @@ ISR (INT0_vect)
     
   }
 
-
-switch(Tiempos)
-  {
-    case 'x': //Tiempo de Suministro de Agua
-
-      break;
-    case 'y': //Tiempo de Lavar
-      break;
-    case 'w': //Tiempo de Enjuagar
-      break;
-    case 'z': //Tiempo de Centrifugar
-      break;
-  } 
-
-
-
-
 //Interrupción de Timeout de los estados:
-
-
 
 
 ISR (TIMER0_COMPA_vect)
 {
   Estado = Prox_Estado;
-  TCN0 = prox_TCNT0;
+  TCNT0 = prox_TCNT0;
 }
  
 
