@@ -2,9 +2,9 @@
 #include <avr/interrupt.h>
 
 //Variables Importantes
-unsigned char t_suministro, t_lavar, t_enjuagar, t_centrigar, prox_TCNT0; //tiempos de cada estado
+unsigned char t_suministro, t_lavar, t_enjuagar, t_centrigar, Tiempo_Actual; //tiempos de cada estado
 unsigned char S_Inicio, S_suministro, S_Lavar, S_Enjuagar, S_Centrifugar; //Indicadores de Estado
-unsigned char Estado, Accion, Volver_Estado, Prox_Estado;
+unsigned char Estado, Accion, Volver_Estado, Prox_Estado, tiempo_estado;
 unsigned char Sb = 0b00000001, Lb = 0b00000011, Eb = 0b00000010, Cb = 0b00000011; //Tiempo en Carga Baja
 unsigned char Sm = 0b00000010, Lm = 0b00000111, Em = 0b00000100, Cm = 0b00000110; //Tiempo en Carga Media
 unsigned char Sa = 0b00000011, La = 0b00001010, Ea = 0b00000101, Ca = 0b00001001; //Tiempo en Carga Alta
@@ -59,7 +59,20 @@ int main(void)
     estados();
   }
 }
-
+void display(tiempo_estado)
+{
+  
+  for( decenas = tiempo_estado; decenas < 0; decenas --)
+      for( unidades= tiempo_estado; unidades < 0; unidades --)
+          for(int i=0;i<10; i++)
+          {
+              GPIO = (numdeci[decenas]); 
+              GPIO = (numuni[unidades]);   
+              
+                              
+          }
+            
+}
 void estados(void) //procede a llamar los estados de la lavadora
 {
 
@@ -78,7 +91,7 @@ switch(Estado)
     TIMSK = (1 << OCIE0A);
     S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<5);
-    prox_TCNT0 = t_lavar;  
+    Tiempo_Actual = t_lavar;  
     Prox_Estado = 'd';
     
       break;
@@ -87,7 +100,7 @@ switch(Estado)
     S_suministro = 0, S_Lavar = 1, S_Enjuagar = 0, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<4);
     PORTD &= ~(1<<5);
-    prox_TCNT0 = t_enjuagar;  
+    Tiempo_Actual = t_enjuagar;  
     Prox_Estado = 'e';
 
     break;
@@ -96,7 +109,7 @@ switch(Estado)
     S_suministro = 0, S_Lavar = 0, S_Enjuagar = 1, S_Centrifugar = 0, Accion = 1;
     PORTD = PORTD | (1<<3);
     PORTD &= ~(1<<4);
-    prox_TCNT0 = t_centrigar;  
+    Tiempo_Actual = t_centrigar;  
     Prox_Estado = 'f';
     break;
 
